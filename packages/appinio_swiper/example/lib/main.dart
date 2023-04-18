@@ -59,7 +59,7 @@ class _ExamplePageState extends State<Example> {
               ),
               onEnd: _onEnd,
               cardsCount: candidates.length,
-              cardsBuilder: (BuildContext context, int index) {
+              cardsBuilder: (BuildContext context, int index, bool foreground) {
                 return ExampleCard(candidate: candidates[index]);
               },
             ),
