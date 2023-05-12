@@ -68,11 +68,10 @@ class AppinioSlideSwiper extends StatefulWidget {
 
   final Widget Function(BuildContext) foregroundCardBuilder;
 
-  final Widget Function(BuildContext) backgroundCardBuilder;
+  final Widget? Function(BuildContext) backgroundCardBuilder;
 
   const AppinioSlideSwiper({
     Key? key,
-    required cardsBuilder,
     this.controller,
     this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
     this.duration = const Duration(milliseconds: 200),
