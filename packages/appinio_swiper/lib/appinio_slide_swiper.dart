@@ -16,6 +16,9 @@ class AppinioSlideSwiper extends AppinioSwiper {
   final double offset;
 
   /// function that gets called when the user slides vertically
+  final OnStartSlide? onStartSlide;
+
+  /// function that gets called when the user slides vertically
   final OnSlide? onSlide;
 
   const AppinioSlideSwiper({
@@ -39,6 +42,7 @@ class AppinioSlideSwiper extends AppinioSwiper {
     this.slideSensitivity = 0.5,
     this.absoluteAngle = false,
     this.offset = 50,
+    this.onStartSlide,
     this.onSlide,
   }) : super(
             key: key,
@@ -337,8 +341,13 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
                     _animationController.forward();
                   }
                 }
-              } else if (_top.abs() > widget.threshold &&
-                  _top.abs() * widget.slideSensitivity > _left.abs()) {
+              } else if (
+                  // if enough vertical slide
+                  _top.abs() > widget.threshold &&
+                      // if more vertical than factor of horizontal slide
+                      _top.abs() * widget.slideSensitivity > _left.abs() &&
+                      // if slide is confirmed
+                      (widget.onStartSlide?.call(currentIndex) ?? true)) {
                 _sliding = true;
                 _goBack(context);
                 _animationController.forward();
