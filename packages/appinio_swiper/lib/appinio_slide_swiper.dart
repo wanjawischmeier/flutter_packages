@@ -15,7 +15,7 @@ class AppinioSlideSwiper extends AppinioSwiper {
   /// offset the background card vertically
   final double offset;
 
-  /// function that gets called when the user slides vertically
+  /// function to verify wether the user should be able to slide
   final OnStartSlide? onStartSlide;
 
   /// function that gets called when the user slides vertically
