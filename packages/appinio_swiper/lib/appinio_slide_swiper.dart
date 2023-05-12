@@ -1,11 +1,47 @@
-import 'appinio_swiper.dart';
+import 'package:appinio_swiper/controllers.dart';
+import 'package:appinio_swiper/enums.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
 
 import 'size_provider.dart';
 export 'size_provider.dart';
 
-class AppinioSlideSwiper extends AppinioSwiper {
+typedef OnStartSlide = bool Function();
+
+typedef OnSlide = bool Function(double gradient);
+
+typedef OnSwipe = void Function(AppinioSwiperDirection direction);
+
+typedef OnUnSwipe = void Function(bool unswiped);
+
+class AppinioSlideSwiper extends StatefulWidget {
+  /// controller to trigger unswipe action
+  final AppinioSwiperController? controller;
+
+  /// duration of every animation
+  final Duration duration;
+
+  /// padding of the swiper
+  final EdgeInsetsGeometry padding;
+
+  /// maximum angle the card reaches while swiping
+  final double maxAngle;
+
+  /// threshold from which the card is swiped away
+  final int threshold;
+
+  /// set to true if swiping should be disabled, exception: triggered from the outside
+  final bool isDisabled;
+
+  /// set to false if unswipe should be disabled
+  final bool allowUnswipe;
+
+  /// function that gets called with the boolean true when the last card gets unswiped and with the boolean false when there is no card to unswipe
+  final OnUnSwipe? unswipe;
+
+  /// direction in which the card gets swiped when triggered by controller, default set to right
+  final AppinioSwiperDirection direction;
+
   /// how easily the sliding gesture is detected
   final double slideSensitivity;
 
@@ -21,47 +57,42 @@ class AppinioSlideSwiper extends AppinioSwiper {
   /// function that gets called when the user slides vertically
   final OnSlide? onSlide;
 
+  /// function that gets called with the new index and detected swipe direction when the user swiped or swipe is triggered by controller
+  final OnSwipe? onSwipe;
+
+  /// function that gets called when there is no widget left to be swiped away
+  final VoidCallback? onEnd;
+
+  /// function that gets triggered when the swiper is disabled
+  final VoidCallback? onTapDisabled;
+
+  final Widget Function(BuildContext) foregroundCardBuilder;
+
+  final Widget Function(BuildContext) backgroundCardBuilder;
+
   const AppinioSlideSwiper({
     Key? key,
     required cardsBuilder,
-    required cardsCount,
-    controller,
-    padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
-    duration = const Duration(milliseconds: 200),
-    double maxAngle = 30,
-    int threshold = 50,
-    isDisabled = false,
-    loop = false,
-    allowUnswipe = true,
-    unlimitedUnswipe = false,
-    onTapDisabled,
-    onSwipe,
-    onEnd,
-    unswipe,
-    direction = AppinioSwiperDirection.right,
+    this.controller,
+    this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+    this.duration = const Duration(milliseconds: 200),
+    this.maxAngle = 30,
+    this.threshold = 50,
+    this.isDisabled = false,
+    this.allowUnswipe = true,
+    this.onTapDisabled,
+    this.onSwipe,
+    this.onEnd,
+    this.unswipe,
+    this.direction = AppinioSwiperDirection.right,
     this.slideSensitivity = 0.5,
     this.absoluteAngle = false,
     this.offset = 50,
     this.onStartSlide,
     this.onSlide,
-  }) : super(
-            key: key,
-            cardsBuilder: cardsBuilder,
-            cardsCount: cardsCount,
-            controller: controller,
-            padding: padding,
-            duration: duration,
-            maxAngle: maxAngle,
-            threshold: threshold,
-            isDisabled: isDisabled,
-            loop: loop,
-            allowUnswipe: allowUnswipe,
-            unlimitedUnswipe: unlimitedUnswipe,
-            onTapDisabled: onTapDisabled,
-            onSwipe: onSwipe,
-            onEnd: onEnd,
-            unswipe: unswipe,
-            direction: direction);
+    required this.foregroundCardBuilder,
+    required this.backgroundCardBuilder,
+  }) : super(key: key);
 
   @override
   State createState() => _AppinioSlideSwiperState();
@@ -78,7 +109,6 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
   double _foregroundScale = 1;
   double _height = 0;
   double _slide = 1;
-  int currentIndex = 0;
 
   int _swipeType = 0; // 1 = swipe, 2 = unswipe, 3 = goBack, 4 = resetting
   bool _sliding = false;
@@ -93,8 +123,6 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
   late Animation<double> _differenceAnimation;
   late Animation<double> _unSwipeLeftAnimation;
   late Animation<double> _unSwipeTopAnimation;
-  final Map<int, AppinioSwiperDirection> _swiperMemo =
-      {}; //keep track of the swiped items to unswipe from the same direction
 
   bool _unSwiped =
       false; // set this to true when user swipe the card and false when they unswipe to make sure they unswipe only once
@@ -115,7 +143,7 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
         //swipe widget from the outside
         ..addListener(() {
           if (widget.controller!.state == AppinioSwiperState.swipe) {
-            if (currentIndex < widget.cardsCount) {
+            if (true) {
               switch (widget.direction) {
                 case AppinioSwiperDirection.right:
                   _swipeHorizontal(context);
@@ -133,7 +161,7 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
         //swipe widget left from the outside
         ..addListener(() {
           if (widget.controller!.state == AppinioSwiperState.swipeLeft) {
-            if (currentIndex < widget.cardsCount) {
+            if (true) {
               _left = -1;
               _swipeHorizontal(context);
               _animationController.forward();
@@ -143,20 +171,21 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
         //swipe widget right from the outside
         ..addListener(() {
           if (widget.controller!.state == AppinioSwiperState.swipeRight) {
-            if (currentIndex < widget.cardsCount) {
+            if (true) {
               _left = widget.threshold + 1;
               _swipeHorizontal(context);
               _animationController.forward();
             }
           }
-        })
+        });
+      /*
         //unswipe widget from the outside
         ..addListener(() {
-          if (!widget.unlimitedUnswipe && _unSwiped) return;
+          if (_unSwiped) return;
           if (widget.controller!.state == AppinioSwiperState.unswipe) {
             if (widget.allowUnswipe) {
               if (!_isUnswiping) {
-                if (currentIndex > 0) {
+                if (true) {
                   _unswipe();
                   widget.unswipe?.call(true);
                   _animationController.forward();
@@ -167,6 +196,7 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
             }
           }
         });
+        */
     }
 
     if (widget.maxAngle > 0) {
@@ -205,16 +235,18 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
 
           switch (_swipeType) {
             case 1:
+              /*
               _swiperMemo[currentIndex] = (_swipedDirectionHorizontal == 1
                   ? AppinioSwiperDirection.right
                   : AppinioSwiperDirection.left);
+              */
               _swipedDirectionHorizontal = 0;
               _swipeType = 4;
               _left = 0;
               _top = 0;
               _total = 0;
               _angle = 0;
-
+              /*
               if (widget.loop) {
                 if (currentIndex < widget.cardsCount - 1) {
                   currentIndex++;
@@ -228,6 +260,8 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
               if (currentIndex == widget.cardsCount) {
                 widget.onEnd?.call();
               }
+              */
+              widget.onSwipe?.call(detectedDirection);
 
               _differenceAnimation = Tween<double>(begin: 0, end: widget.offset)
                   .animate(_animationController);
@@ -272,10 +306,8 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
                   clipBehavior: Clip.none,
                   fit: StackFit.expand,
                   children: [
-                    if (widget.loop || currentIndex < widget.cardsCount - 1)
-                      _backgroundItem(constraints),
-                    if (currentIndex < widget.cardsCount)
-                      _foregroundItem(constraints)
+                    _backgroundItem(constraints),
+                    _foregroundItem(constraints),
                   ]);
             },
           ),
@@ -290,7 +322,10 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
       left: 0,
       child: Transform.scale(
         scale: _backgroundScale,
-        child: Container(constraints: constraints, child: _getCard(false)),
+        child: Container(
+          constraints: constraints,
+          child: widget.backgroundCardBuilder(context),
+        ),
       ),
     );
   }
@@ -305,11 +340,12 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
           child: Transform.rotate(
             angle: _angle,
             child: Container(
-                constraints: constraints,
-                child: SizeProvider(
-                  onChildSize: (p0) => _height = p0.height,
-                  child: _getCard(true),
-                )),
+              constraints: constraints,
+              child: SizeProvider(
+                onChildSize: (p0) => _height = p0.height,
+                child: widget.foregroundCardBuilder(context),
+              ),
+            ),
           ),
         ),
         onTap: () {
@@ -334,7 +370,7 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
                 if (gradient != _slide) {
                   _slide = gradient;
 
-                  if (widget.onSlide?.call(currentIndex, _slide) ?? false) {
+                  if (widget.onSlide?.call(_slide) ?? false) {
                     _foregroundScaleAnimation =
                         Tween<double>(begin: 1.025, end: 1)
                             .animate(_animationController);
@@ -347,7 +383,7 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
                       // if more vertical than factor of horizontal slide
                       _top.abs() * widget.slideSensitivity > _left.abs() &&
                       // if slide is confirmed
-                      (widget.onStartSlide?.call(currentIndex) ?? true)) {
+                      (widget.onStartSlide?.call() ?? true)) {
                 _sliding = true;
                 _goBack(context);
                 _animationController.forward();
@@ -375,13 +411,14 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
     );
   }
 
+  /*
   Widget _getCard(bool foreground) {
     return widget.cardsBuilder(
         context,
         foreground ? currentIndex : (currentIndex + 1) % widget.cardsCount,
         foreground);
   }
-
+  */
   void _calculateAngle() {
     if (_angle <= _maxAngle && _angle >= -_maxAngle) {
       (_tapOnTop || widget.absoluteAngle)
@@ -474,11 +511,12 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
       ).animate(_animationController);
     });
   }
-
+  /*
   //unswipe the card: brings back the last card that was swiped away
   void _unswipe() {
     _unSwiped = true;
     _isUnswiping = true;
+    /*
     if (widget.loop) {
       if (currentIndex == 0) {
         currentIndex = widget.cardsCount - 1;
@@ -490,6 +528,7 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
         currentIndex--;
       }
     }
+    */
     _swipeType = 2;
     //unSwipe horizontal
     if (_swiperMemo[currentIndex] == AppinioSwiperDirection.right ||
@@ -542,4 +581,5 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
 
     setState(() {});
   }
+  */
 }
