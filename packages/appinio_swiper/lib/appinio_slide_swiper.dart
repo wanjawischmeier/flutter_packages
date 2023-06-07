@@ -10,7 +10,8 @@ typedef OnStartSlide = bool Function();
 
 typedef OnSlide = bool Function(double gradient);
 
-typedef OnSwipe = void Function(AppinioSwiperDirection direction);
+/// return true if the card should be recentered
+typedef OnSwipe = bool Function(AppinioSwiperDirection direction);
 
 typedef OnUnSwipe = void Function(bool unswiped);
 
@@ -210,12 +211,14 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
           switch (_swipeType) {
             case 1:
               _swipeType = 4;
-              _left = 0;
-              _top = 0;
-              _total = 0;
-              _angle = 0;
 
-              widget.onSwipe?.call(detectedDirection);
+              var recenter = widget.onSwipe?.call(detectedDirection) ?? true;
+              if (recenter) {
+                _left = 0;
+                _top = 0;
+                _total = 0;
+                _angle = 0;
+              }
 
               _differenceAnimation = Tween<double>(begin: 0, end: widget.offset)
                   .animate(_animationController);
