@@ -66,7 +66,7 @@ class AppinioSlideSwiper extends StatefulWidget {
   /// function that gets triggered when the swiper is disabled
   final VoidCallback? onTapDisabled;
 
-  final Widget Function(BuildContext) foregroundCardBuilder;
+  final Widget? Function(BuildContext) foregroundCardBuilder;
 
   final Widget? Function(BuildContext) backgroundCardBuilder;
 
@@ -123,12 +123,6 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
   late Animation<double> _unSwipeLeftAnimation;
   late Animation<double> _unSwipeTopAnimation;
 
-  bool _unSwiped =
-      false; // set this to true when user swipe the card and false when they unswipe to make sure they unswipe only once
-
-  bool _isUnswiping = false;
-  int _swipedDirectionHorizontal = 0; //-1 bottom, 1 top
-
   AppinioSwiperDirection detectedDirection = AppinioSwiperDirection.none;
 
   @override
@@ -177,25 +171,6 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
             }
           }
         });
-      /*
-        //unswipe widget from the outside
-        ..addListener(() {
-          if (_unSwiped) return;
-          if (widget.controller!.state == AppinioSwiperState.unswipe) {
-            if (widget.allowUnswipe) {
-              if (!_isUnswiping) {
-                if (true) {
-                  _unswipe();
-                  widget.unswipe?.call(true);
-                  _animationController.forward();
-                } else {
-                  widget.unswipe?.call(false);
-                }
-              }
-            }
-          }
-        });
-        */
     }
 
     if (widget.maxAngle > 0) {
@@ -234,32 +209,12 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
 
           switch (_swipeType) {
             case 1:
-              /*
-              _swiperMemo[currentIndex] = (_swipedDirectionHorizontal == 1
-                  ? AppinioSwiperDirection.right
-                  : AppinioSwiperDirection.left);
-              */
-              _swipedDirectionHorizontal = 0;
               _swipeType = 4;
               _left = 0;
               _top = 0;
               _total = 0;
               _angle = 0;
-              /*
-              if (widget.loop) {
-                if (currentIndex < widget.cardsCount - 1) {
-                  currentIndex++;
-                } else {
-                  currentIndex = 0;
-                }
-              } else {
-                currentIndex++;
-              }
-              widget.onSwipe?.call(currentIndex, detectedDirection);
-              if (currentIndex == widget.cardsCount) {
-                widget.onEnd?.call();
-              }
-              */
+
               widget.onSwipe?.call(detectedDirection);
 
               _differenceAnimation = Tween<double>(begin: 0, end: widget.offset)
@@ -268,9 +223,6 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
                   Tween<double>(begin: _backgroundScale, end: 0.9)
                       .animate(_animationController);
               _animationController.forward();
-              break;
-            case 2:
-              _isUnswiping = false;
               break;
             default:
               _left = 0;
@@ -342,7 +294,9 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
               constraints: constraints,
               child: SizeProvider(
                 onChildSize: (p0) => _height = p0.height,
-                child: widget.foregroundCardBuilder(context),
+                child: Container(
+                  child: widget.foregroundCardBuilder(context),
+                ),
               ),
             ),
           ),
@@ -410,14 +364,6 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
     );
   }
 
-  /*
-  Widget _getCard(bool foreground) {
-    return widget.cardsBuilder(
-        context,
-        foreground ? currentIndex : (currentIndex + 1) % widget.cardsCount,
-        foreground);
-  }
-  */
   void _calculateAngle() {
     if (_angle <= _maxAngle && _angle >= -_maxAngle) {
       (_tapOnTop || widget.absoluteAngle)
@@ -452,7 +398,6 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
   //moves the card away to the left or right
   void _swipeHorizontal(BuildContext context) {
     _slide = 1;
-    _unSwiped = false;
     setState(() {
       _swipeType = 1;
       _leftAnimation = Tween<double>(
@@ -480,10 +425,8 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
     });
     if (_left > widget.threshold ||
         _left == 0 && widget.direction == AppinioSwiperDirection.right) {
-      _swipedDirectionHorizontal = 1;
       detectedDirection = AppinioSwiperDirection.right;
     } else {
-      _swipedDirectionHorizontal = -1;
       detectedDirection = AppinioSwiperDirection.left;
     }
   }
@@ -510,75 +453,4 @@ class _AppinioSlideSwiperState extends State<AppinioSlideSwiper>
       ).animate(_animationController);
     });
   }
-  /*
-  //unswipe the card: brings back the last card that was swiped away
-  void _unswipe() {
-    _unSwiped = true;
-    _isUnswiping = true;
-    /*
-    if (widget.loop) {
-      if (currentIndex == 0) {
-        currentIndex = widget.cardsCount - 1;
-      } else {
-        currentIndex--;
-      }
-    } else {
-      if (currentIndex > 0) {
-        currentIndex--;
-      }
-    }
-    */
-    _swipeType = 2;
-    //unSwipe horizontal
-    if (_swiperMemo[currentIndex] == AppinioSwiperDirection.right ||
-        _swiperMemo[currentIndex] == AppinioSwiperDirection.left) {
-      _unSwipeLeftAnimation = Tween<double>(
-        begin: (_swiperMemo[currentIndex] == AppinioSwiperDirection.right)
-            ? MediaQuery.of(context).size.width
-            : -MediaQuery.of(context).size.width,
-        end: 0,
-      ).animate(_animationController);
-      _unSwipeTopAnimation = Tween<double>(
-        begin: (_swiperMemo[currentIndex] == AppinioSwiperDirection.top)
-            ? -MediaQuery.of(context).size.height / 4
-            : MediaQuery.of(context).size.height / 4,
-        end: 0,
-      ).animate(_animationController);
-      _backgroundScaleAnimation = Tween<double>(
-        begin: 1.0,
-        end: _backgroundScale,
-      ).animate(_animationController);
-      _differenceAnimation = Tween<double>(
-        begin: 0,
-        end: _difference,
-      ).animate(_animationController);
-    }
-    //unSwipe vertical
-    if (_swiperMemo[currentIndex] == AppinioSwiperDirection.top ||
-        _swiperMemo[currentIndex] == AppinioSwiperDirection.bottom) {
-      _unSwipeLeftAnimation = Tween<double>(
-        begin: (_swiperMemo[currentIndex] == AppinioSwiperDirection.right)
-            ? MediaQuery.of(context).size.width / 4
-            : -MediaQuery.of(context).size.width / 4,
-        end: 0,
-      ).animate(_animationController);
-      _unSwipeTopAnimation = Tween<double>(
-        begin: (_swiperMemo[currentIndex] == AppinioSwiperDirection.top)
-            ? -MediaQuery.of(context).size.height
-            : MediaQuery.of(context).size.height,
-        end: 0,
-      ).animate(_animationController);
-      _backgroundScaleAnimation = Tween<double>(
-        begin: 1.0,
-        end: _backgroundScale,
-      ).animate(_animationController);
-      _differenceAnimation = Tween<double>(
-        begin: 0,
-        end: _difference,
-      ).animate(_animationController);
-    }
-
-    setState(() {});
-  }
-  */
 }
